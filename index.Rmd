@@ -19,7 +19,7 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ## Data Wrangling, Exploration, Visualization
 
-### Name and EID here
+### Nisha Chowdhary (nac2375)
 
 #### Introduction 
 
@@ -27,6 +27,7 @@ Paragraph or two introducing your datasets and variables, why they are interesti
 
 ```{R}
 # read your datasets in here, e.g., with read_csv()
+#join by crash id? pivot wider by gender but first separate it and then rename 1 == male and 2 == female
 
 ```
 
