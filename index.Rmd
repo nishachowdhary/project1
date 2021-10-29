@@ -23,12 +23,17 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 #### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
+  My data sets contain data relating to drunk driving incidents in the Austin, Texas area for the year 2020. In the data sets you will find columns with different attributes such as the crash ID, the age of the people involved in the accident, their gender and ethnicity, whether they died or obtained an injury or not, where they were in the car, the road condition, and the weather condition. The only qualms I have with the data I found is that I can't see which person involved in the crash is intoxicated (wasn't available to me), just because a person is involved in the crash does not mean that they were the one drinking and driving. 
+  Over the summer I interned at TxDOT, and conducted data analysis on traffic patterns in Austin. I never got the chance to examine drunk driving incidents in the Austin area, something I was really interested in just out of sheer curiosity. Additionally, I wanted to truly understand the magnitude of the number of people involved in drunk driving crashes and the severity/nature of the crashes.
 
 ```{R}
-# read your datasets in here, e.g., with read_csv()
-#join by crash id? pivot wider by gender but first separate it and then rename 1 == male and 2 == female
-
+# reading in data sets
+library(readr)
+library(dplyr)
+library(tidyr)
+crash_data1 <- read_csv("/stor/home/nac2375/project1/crash_data_1.csv")
+crash_data2 <- read_csv("/stor/home/nac2375/project1/crash_data2.csv")
+crash_data3 <- read_csv("/stor/home/nac2375/project1/crash_data3.csv")
 ```
 
 #### Tidying: Reshaping
@@ -36,31 +41,48 @@ Paragraph or two introducing your datasets and variables, why they are interesti
 If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
 
 ```{R}
-# your tidying code (if applicable; can also wait until wrangling section)
+crash1 <- crash_data1 %>% separate(Gender, c('letter', 'Gender')) %>% 
+  select(-letter) %>% separate(Ethnicity, c('delete', 'Ethnicity')) %>% 
+  select(-delete) %>% separate(location_in_car, sep = '-', c('bye', 'location_in_car')) %>% 
+  select(-bye) #making the values in the columns easier to read without dashes and whatnot
+
+crash_2 <- crash_data2 %>% rename('Crash_ID' = 'X1') #renaming X1 to Crash_ID to help with merging later on.
+
+crash2 <- crash_2 %>% pivot_longer(!Crash_ID, names_to = 'road_type', values_to = "true_false") %>% 
+  filter(true_false == 1) %>% select(-true_false) #pivoting longer to create a single column for the road type, then getting rid of rows that do not apply.
+
+crash_3 <- crash_data3 %>% separate(Weather, c('delete', 'Weather')) %>% select(-delete) #again, making values in cells easier to read without dashes
+
+wider <- crash_3 %>% pivot_wider(names_from = 'Weather', values_from = "Weather") #this is me pivoting wider and making it untidy, now I will pivot longer and make it tidy again using pivot longer:
+  
+crash3 <- wider %>% pivot_longer(!Crash_ID, names_to = 'Weather_type', values_to = 'Weather') %>% 
+  na.omit() %>% select(-Weather_type)
+
 ```
 
     
 #### Joining/Merging
 
 ```{R}
-# your joining code
+full_crash <- full_join(crash1, crash2) 
+full_crash_data1 <- full_join(full_crash, crash3)
+adding_more <- full_crash_data1 %>% group_by(Crash_ID) %>% count %>% 
+  rename('total_ppl_involved_in_crash' = n) #creating a column for the total people involved in a crash, a single crash is labeled by the crash ID.
 
-# your joining code
+full_crash_data <- full_join(full_crash_data1, adding_more)
 ```
 
-Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+I joined the three data sets by their crash ID, first I joined the first two data sets to create one big data set, then I did another full join and joined the big data set to my third data set to create an even bigger data set, finally, I created a column for the total people involved in a crash and merged that with the previous resulting merge. This is the data set I am going to use for the rest of this project.
 
 ####  Wrangling
 
 ```{R}
-# your wrangling code
+full_crash_data %>% mutate(Age = replace(Age, Age == 2 , 20)) %>% filter(Person_Death_Count == 1) %>% arrange(Age) #noticed that twenty was showing up as 2, so I changed it to 20
 
-# your wrangling code
 
-# your wrangling code
 ```
 
-Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+Your discussion of wrangling section here. Feel encouraged to break up into more than one code chunk and discuss each in turn.
 
 
 #### Visualizing
