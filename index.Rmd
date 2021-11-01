@@ -21,24 +21,24 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ### Nisha Chowdhary (nac2375)
 
-#### Introduction 
+### Introduction 
 
-  My data sets contain data relating to drunk driving incidents in the Austin, Texas area for the year 2020. In the data sets you will find columns with different attributes such as the crash ID, the age of the people involved in the accident, their gender and ethnicity, whether they died or obtained an injury or not, where they were in the car, the road condition, and the weather condition. The only qualms I have with the data I found is that I can't see which person involved in the crash is intoxicated (wasn't available to me), just because a person is involved in the crash does not mean that they were the one drinking and driving. 
-  Over the summer I interned at TxDOT, and conducted data analysis on traffic patterns in Austin. I never got the chance to examine drunk driving incidents in the Austin area, something I was really interested in just out of sheer curiosity. Additionally, I wanted to truly understand the magnitude of the number of people involved in drunk driving crashes and the severity/nature of the crashes.
+  Over the summer I interned at TxDOT, and conducted data analysis on traffic patterns in Austin. I never got the chance to examine drunk driving incidents in the Austin area, something I was really interested in just out of sheer curiosity. Additionally, I wanted to truly understand the magnitude of the number of people involved in drunk driving crashes and the severity/nature of the crashes. My data sets contain data relating to drunk driving incidents in the Austin, Texas area for the year 2020. In the data sets you will find columns with different attributes such as the crash ID, the age of the people involved in the accident, their gender and ethnicity, whether they died or obtained an injury or not, where they were in the car, the road condition, and the weather condition. The only qualms I have with the data I found is that I can't see which person involved in the crash is intoxicated (wasn't available to me), just because a person is involved in the crash does not mean that they were the one drinking and driving. 
 
 ```{R}
 # reading in data sets
 library(readr)
 library(dplyr)
 library(tidyr)
+library(gt)
 crash_data1 <- read_csv("/stor/home/nac2375/project1/crash_data_1.csv")
 crash_data2 <- read_csv("/stor/home/nac2375/project1/crash_data2.csv")
 crash_data3 <- read_csv("/stor/home/nac2375/project1/crash_data3.csv")
 ```
 
-#### Tidying: Reshaping
+### Tidying: Reshaping
 
-If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
+There was a bit of work to be done on the three data sets I used. For the first data set, called crash_data1, I renamed the values in 'Gender' to contain only the word without the number in front of the word (ex: '2-Female' became 'Female'). I did the same thing with 'Ethnicity'. For the crash_data2 data set I renamed the column X1 to 'Crash_ID', then I pivoted longer to create a single column for the road type. For crash_data3 I renamed the values in the weather column in a similar way to the 'gender' and 'ethnicity' columns, then, since my data set was tidy, I pivoted wider to make it untidy, then longer again to make it tidy. I named the resulting data sets: crash1, crash2, and crash3, respectively.
 
 ```{R}
 crash1 <- crash_data1 %>% separate(Gender, c('letter', 'Gender')) %>% 
@@ -53,61 +53,174 @@ crash2 <- crash_2 %>% pivot_longer(!Crash_ID, names_to = 'road_type', values_to 
 
 crash_3 <- crash_data3 %>% separate(Weather, c('delete', 'Weather')) %>% select(-delete) #again, making values in cells easier to read without dashes
 
-wider <- crash_3 %>% pivot_wider(names_from = 'Weather', values_from = "Weather") #this is me pivoting wider and making it untidy, now I will pivot longer and make it tidy again using pivot longer:
+wider <- crash_3 %>% pivot_wider(names_from = 'Weather', values_from = "Weather") #this is me pivoting wider and making it untidy, now I will make it tidy again using pivot longer:
+
+glimpse(wider) #so you can see what the wider, untidy data looks like
   
 crash3 <- wider %>% pivot_longer(!Crash_ID, names_to = 'Weather_type', values_to = 'Weather') %>% 
   na.omit() %>% select(-Weather_type)
 
+glimpse(crash3) #so you can see what the longer, tidy data looks like
 ```
 
     
-#### Joining/Merging
+### Joining/Merging
 
 ```{R}
+#The unique IDs in each dataset:
+n_distinct(crash1$Crash_ID)
+n_distinct(crash2$Crash_ID)
+n_distinct(crash3$Crash_ID)
+
+#The IDs that appear in one dataset but not the other
+n_distinct(subset(crash1, !(Crash_ID %in% crash2$Crash_ID)))
+
+n_distinct(subset(crash2, !(Crash_ID %in% crash1$Crash_ID)))
+n_distinct(subset(crash2, !(Crash_ID %in% crash3$Crash_ID)))
+#the two occurrences in crash2 but not crash1:
+subset(crash2, !(Crash_ID %in% crash1$Crash_ID)) 
+#same two occurrences as above in crash2 but not crash3
+subset(crash2, !(Crash_ID %in% crash3$Crash_ID))
+n_distinct(subset(crash3, !(Crash_ID %in% crash2$Crash_ID)))
+n_distinct(subset(crash1, !(Crash_ID %in% crash3$Crash_ID)))
+n_distinct(subset(crash3, !(Crash_ID %in% crash1$Crash_ID)))
+
 full_crash <- full_join(crash1, crash2) 
 full_crash_data1 <- full_join(full_crash, crash3)
 adding_more <- full_crash_data1 %>% group_by(Crash_ID) %>% count %>% 
   rename('total_ppl_involved_in_crash' = n) #creating a column for the total people involved in a crash, a single crash is labeled by the crash ID.
 
-full_crash_data <- full_join(full_crash_data1, adding_more)
+full_crash_data <- full_join(full_crash_data1, adding_more) %>% mutate(Age = replace(Age, Age == 2 , 20)) %>% mutate(Age = as.numeric(Age)) #joining the additional column to the full crash data1 to create the final full data.
 ```
 
-I joined the three data sets by their crash ID, first I joined the first two data sets to create one big data set, then I did another full join and joined the big data set to my third data set to create an even bigger data set, finally, I created a column for the total people involved in a crash and merged that with the previous resulting merge. This is the data set I am going to use for the rest of this project.
+The crash1 data set has 2372 rows, the crash2 data set has 1187 rows, and the crash3 data set has 1185 rows. The crash1 dataset had information pertaining to every single person involved in the crash which means that there are multiple rows with the same crash ID depending on how many people were involved in that crash. Meanwhile, the crash2 and crash3 data sets had information pertaining to the environment at the time of the event, so it has no repeated IDs since each crash can only have one distinct set of environmental conditions. I joined the three data sets by their crash ID, first I full joined the first two data sets to create one big data set, then I performed another full join and joined the previous data set to my third data set to create a dataset with more attributes, finally, I created an additional column for the total people involved in a crash and merged that with the previous resulting merge. This is the data set I am going to use for the rest of this project. Additionally, I noticed that the age category was a character instead of a numeric value, so I changed that using "as.numeric". In this part of my code I noticed that all the 2s came after 19 (This was happening before I changed the age column from a character to a number). There were several like this, and I have no way of knowing if it actually meant 2 or 20, but since there were hardly any toddlers in the data and the data placed the number after 19 I went ahead and changed the 2 to 20 using mutate since that is what R was reading it in as anyway. No rows were dropped in the full data set because for the following analysis I needed all the data, so I performed a full join. My full data set has 2374 observations, which is two more than the crash1 data set. This makes sense because there was one distinct ID (NA) with two occurrences that was in crash2 but not in both crash3 or crash1.
 
-####  Wrangling
+###  Wrangling
 
 ```{R}
-full_crash_data %>% mutate(Age = replace(Age, Age == 2 , 20)) %>% filter(Person_Death_Count == 1) %>% arrange(Age) #noticed that twenty was showing up as 2, so I changed it to 20
+#Looking at the data specifically for people involved in a crash who died:
 
+full_crash_data %>% filter(Person_Death_Count == 1) %>% count(Gender)
 
+full_crash_data %>% filter(Person_Death_Count == 1) %>% group_by(Gender) %>% na.omit() %>% summarize(mean(Age))
+
+full_crash_data %>% filter(Person_Death_Count == 1) %>% na.omit() %>% group_by(Gender) %>% summarize(min_age = min(Age))
+
+full_crash_data %>% filter(Person_Death_Count == 1) %>% na.omit() %>% group_by(Gender) %>% summarize(max_age = max(Age))
 ```
-
-Your discussion of wrangling section here. Feel encouraged to break up into more than one code chunk and discuss each in turn.
-
-
-#### Visualizing
+I wanted to see what proportion of people who died were male or female. A total of 27 people died from drunk driving crashes in the year 2020 in the Austin area, of those 27, 8 were female and 19 were male. The average age for the women who died was 34.375 and the average age for men who died was 34.88889. The youngest female who died was 20 years old and the youngest male who died was 19 years old. The oldest female who died was a 57 years old and the oldest male who died was 55 years old.
 
 ```{R}
-# your plot 1
+#Looking at the standard deviation and range of the age category for the entire data set:
+full_crash_data %>% na.omit() %>% summarize(sd_age = sd(Age))
+
+full_crash_data %>% na.omit() %>% summarize(range(Age))
 ```
 
-Your discussion of plot 1
+The standard deviation of the age for the entire data set was found to be around 14.001. Apparently, the ages ranged from 0 to a whopping 120 for the entire data set. (I am a little skeptical of a 120 year old being in a car in the first place, but I am going to go along with it.)
 
 ```{R}
-# your plot 2
-```
+most_common_crash_female <- full_crash_data %>% group_by(Gender, Ethnicity, location_in_car, road_type, Weather) %>% 
+  summarise(count = n()) %>% filter(Gender == 'FEMALE') %>% arrange(desc(count))
 
-Your discussion of plot 2
+glimpse(most_common_crash_female)
+
+most_common_crash_male <- full_crash_data %>% group_by(Gender, Ethnicity, location_in_car, road_type, Weather) %>% 
+  summarise(count = n()) %>% filter(Gender == 'MALE') %>% arrange(desc(count))
+
+glimpse(most_common_crash_male)
+
+```
+The most common type of drunk driving crash for female with a count of 178 was when the weather was clear, the road dry, their location in the car was the driver seat (or the front of a motorcycle), and their ethnicity was White. The most common type of crash for men with a comparably higher count (509) was when the weather was clear, the road dry, their location in the car was the driver seat (or the front of a motorcycle), and their ethnicity was Hispanic.
 
 ```{R}
-# your plot 3
+#Table of counts for each categorical variable:
+gt(full_crash_data %>% group_by(Gender) %>% na.omit() %>% summarize(n = n()) %>% arrange(desc(n))) %>%
+  tab_header(title = "Gender", subtitle = "Count of Gender Involved in Crashes")
+
+gt(full_crash_data %>% group_by(Ethnicity) %>% na.omit() %>% summarize(n = n()) %>% arrange(desc(n))) %>%
+  tab_header(title = "Ethnicity", subtitle = "Count of Ethnicity Type Involved in Crashes") 
+
+gt(full_crash_data %>% group_by(road_type) %>% na.omit() %>% summarize(n = n()) %>% arrange(desc(n))) %>%
+  tab_header(title = "Road Condition", subtitle = "Count of the Road's Condition")
+
+gt(full_crash_data %>% group_by(location_in_car) %>% na.omit() %>% summarize(n = n()) %>% arrange(desc(n))) %>%
+  tab_header(title = "Location of Person in Car", subtitle = "Where was the person sitting in the car?")
+
+gt(full_crash_data %>% group_by(Weather) %>% na.omit() %>% summarize(n = n()) %>% arrange(desc(n))) %>%
+  tab_header(title = "Weather", subtitle = "Count of Weather Type")
 ```
 
-Your discussion of plot 3
+This is just the tables of counts for each categorical variable, next I will look at the maximum number of people involved in a single crash.
+``` {R}
+#finding max number of people involved in crash
+full_crash_data %>% summarize(max_ppl_involved = max(total_ppl_involved_in_crash))
+full_crash_data %>% filter(total_ppl_involved_in_crash == 10) 
+```
+The maximum number of people involved in a single crash was 10. There were two separate crashes that involved ten people, I wanted to take a look at what those two crashes looked like so I filtered where the total people involved equaled ten to look at the dynamics. Luckily, no one died in either of the crashes, but in the first crash it does look like one person was injured.
 
-#### Concluding Remarks
+``` {R}
+#sort the proportion of injuries by ethnicity (mutate)
+mutate_and_ethnicity <- full_crash_data %>% mutate(prop_inj = Possible_Injury_Count/total_ppl_involved_in_crash) %>% 
+  group_by(Ethnicity) %>% count(prop_inj) %>% arrange(desc(prop_inj))
+glimpse(mutate_and_ethnicity)
 
-If any!
+#Define missing values for each variable: Define a function
+gt(full_crash_data %>% summarize_all(function (x) sum(is.na(x)))) %>% 
+     tab_header(title = "NA Count for Each Variable")
+
+```
+The highest number of crashes AND highest proportion of people injured in a car crash occurred for ethnicity equal to Hispanic and the second highest for both occurred when the ethnicity was White. On another note, I also provided a table for the full data containing the number of values listed as NA for each variable. The highest number of values missing was for a person's age (152 values missing).
+
+### Visualizing
+
+```{R}
+library(ggplot2)
+#plot 1
+data_plot1 <- full_crash_data %>% na.omit() %>% group_by(Gender, Ethnicity) %>% 
+  summarize(Count = n_distinct(Crash_ID)) %>% filter(!Ethnicity == 'Data') %>% 
+  filter(!Gender == 'UNKNOWN') %>% filter(!Ethnicity == 'OTHER')
+
+ggplot(data_plot1, aes(y=Count, x=Ethnicity)) + 
+  geom_bar(aes(fill=Gender), position="dodge", stat="summary") +
+  ggtitle("Count of Crashes based on Gender and Grouped by Ethnicity") +
+  theme_minimal() + scale_y_continuous(breaks = seq(0, 550, 50))
+  
+```
+This plot depicts the number people involved in drunk driving related crashes based on ethnicity and gender. Taking into account only gender and ethnicity, we can see that the count for males and females involved in drunk driving accidents is highest for Hispanics. Women are involved in less drunk driving crashes than males accross all ethnicities. Note that "Amer" means American, and does not necessarily mean just "White", so it is hard to include this in analysis. Ignoring "Amer" and "Unknown", we can see that Asians (both male and female) are involved in the fewest number of drunk driving crashes.
+
+```{R}
+#plot 2
+data_plot2 <- full_crash_data %>% na.omit() %>% group_by(Gender, Ethnicity) %>%
+  summarize(mean_age = mean(Age)) %>% filter(!Gender == 'UNKNOWN') %>% 
+  filter(!Ethnicity == 'UNKNOWN') %>% filter(!Ethnicity == 'Data')
+
+ggplot(data_plot2, aes(y=mean_age, x=Ethnicity)) + 
+  geom_bar(aes(fill=Gender), position=position_dodge(), stat="identity") +
+  ggtitle("Average Age of Person Involved in Crash Based on Gender and Ethnicity") +
+  theme_dark() + scale_y_continuous(breaks = seq(0, 40, 5), limits=c(0, 40)) +
+  ylab("Average Age")
+
+```
+
+This barplot depicts the average age of people involved in drunk driving related crashes based on gender and ethnicity. It appears as though, on average, females involved in crashes are younger than males involved in drunk driving related crashes across all ethnicities. Additionally, I noticed that ethnicities defined as "Amer" (American) had a significantly younger average age for females than the rest of the ethnicities. The I would like to note that "American" does not necessarily mean White, it just means that when asked their ethnicity these people said "American". The male's average age appears to not fluctuate too heavily, the only noticeable fact is that Hispanic males had a slightly younger average age than the rest of them. 
+
+```{R}
+#plot 3
+data_plot3 <- full_crash_data %>% group_by(Age, Gender) %>% summarize(n =n()) %>% 
+  filter(!Gender == 'UNKNOWN') %>% filter(!Gender == 'Data')
+
+ggplot(data_plot3, aes(x = Age, y = n)) + geom_point(aes(color = Gender)) +
+  geom_smooth(aes(color = Gender)) + scale_y_continuous(breaks = seq(0, 65, 10), limits=c(0, 65)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + theme_minimal() +
+  ylab("Count") + ggtitle("Plot of How Many Crashes vs. Age Grouped by Gender")
+```
+
+In contrast to the first two plots, this plot shows the count of people involved in crashes based on age and gender. For both male and females, the peak is around age 29-30 years old, however, the count for men at this age is almost double the count for women. In fact, in general, the trend lines show that the count for women involved in drunk driving related crashes are less than men across nearly every age. The trend lines start off around the same count, but then the male trend line increases quicker than the female trend line. Similarly, after the peak, both trend lines decrease, but the male trend line decreases at a faster rate. They both show some slight overlap 50 to 60 years old, and then intersect around 75 years old.
+
+### Concluding Remarks
+
+This was a fun project! My main takeaway was that women in the Austin area are involved in less drunk driving collisions than men. 
 
 
 

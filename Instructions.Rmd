@@ -124,20 +124,20 @@ Prerequisite: Finding appropriate data from at least two sources per the instruc
 
 - Use all six core `dplyr` functions in the service of generating summary tables/statistics (14 pts)
    
-    - Use mutate at least once to generate a variable that is a function of at least one other variable
+    - Use mutate at least once to generate a variable that is a function of at least one other variable DONe
     - Use at least one `stringr` function with to do something with regex
 
 - Compute summary statistics for each of your variables using `summarize` (fine to use variants such as `summarize_all`) alone and with `group_by` (if you have more than 10 variables, fine to just focus on 10 of them) (20 pts)
 
-    - Use at least 5 unique functions inside of summarize (e.g., mean, sd)
-    - For at least 2 functions, use summarize after grouping by a categorical variable. Create one by dichotomizing a numeric if necessary
-    - For at least 1 function, define your own function and use it inside summarize
-    - If applicable, at least 1 of these should group by two categorical variables
-    - For each categorical variable, provide a table of counts for each level (e.g., by using `n()` inside `summarize` after group_by)
+    - Use at least 5 unique functions inside of summarize (e.g., mean, sd) DONE
+    - For at least 2 functions, use summarize after grouping by a categorical variable. Create one by dichotomizing a numeric if necessary DONE
+    - For at least 1 function, define your own function and use it inside summarize DONE
+    - If applicable, at least 1 of these should group by two categorical variables DONE
+    - For each categorical variable, provide a table of counts for each level (e.g., by using `n()` inside `summarize` after group_by) DONE
 
 - Discuss the procedure and all (or the most interesting) findings/results in no more than two paragraphs (8 pts)
 
-- Style at least one table with `gt` or `kable` packages (4 pts)
+- Style at least one table with `gt` or `kable` packages (4 pts) DONE
 
 
 #### 4. Visualizing (39 pts)
